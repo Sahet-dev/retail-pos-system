@@ -66,7 +66,7 @@ Relationships are designed to mirror real retail operations.
 ## Local Setup
 
 ```bash
-git clone https://github.com/your-username/retail-pos-core.git
+git clone git@github.com:Sahet-dev/retail-pos-core.git
 cd retail-pos-core
 
 composer install
