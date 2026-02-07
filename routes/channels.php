@@ -2,6 +2,16 @@
 
 use Illuminate\Support\Facades\Broadcast;
 
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+/*
+|--------------------------------------------------------------------------
+| Broadcast Channels
+|--------------------------------------------------------------------------
+*/
+
+Broadcast::channel('location.{locationId}', function ($user, $locationId) {
+    // simplest version: allow any authenticated user
+    return true;
+
+    // OR real logic (recommended later)
+    // return $user->location_id == $locationId;
 });

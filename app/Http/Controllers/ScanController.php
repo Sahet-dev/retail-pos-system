@@ -21,7 +21,14 @@ class ScanController extends Controller
         // Find the product
         $product = Product::where('barcode', $request->barcode)
             ->where('active', true)
-            ->firstOrFail();
+            ->first();
+
+        if (! $product) {
+            return response()->json([
+                'message' => 'Product not found or inactive'
+            ], 404);
+        }
+
 
         // Get or create an open sale for the location
         $sale = $request->sale_id

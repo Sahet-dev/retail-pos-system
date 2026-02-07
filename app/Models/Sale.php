@@ -6,13 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Sale extends Model
 {
     protected $fillable = [
         'location_id',
         'total',
+        'status',
+        'cash_given',
+        'change_amount',
+        'closed_at',
     ];
+
 
     protected $casts = [
         'total' => 'decimal:2',

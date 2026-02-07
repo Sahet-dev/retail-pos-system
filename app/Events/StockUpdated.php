@@ -3,6 +3,7 @@
 namespace App\Events;
 
 use App\Models\Stock;
+use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -16,9 +17,9 @@ class StockUpdated implements ShouldBroadcast
         public Stock $stock
     ) {}
 
-    public function broadcastOn(): PrivateChannel
+    public function broadcastOn(): Channel
     {
-        return new PrivateChannel(
+        return new Channel(
             'location.' . $this->stock->location_id
         );
     }
