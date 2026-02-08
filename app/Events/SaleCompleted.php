@@ -32,10 +32,13 @@ class SaleCompleted implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
+        $itemsCount = $this->sale->items->sum('quantity');
         return [
             'sale_id' => $this->sale->id,
             'location_id' => $this->sale->location_id,
             'total' => $this->sale->total,
+            'cash' => $this->sale->cash_given ?? 0,
+            'items_count' => $itemsCount,
         ];
     }
 }

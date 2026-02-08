@@ -23,26 +23,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 
-//Route::get('/dashboard', function () {
-//    $locationId = 1;
-//
-//    return Inertia::render('Dashboard', [
-//        'initialSales' => Sale::where('location_id', $locationId)
-//            ->latest()
-//            ->take(20)
-//            ->get(['id', 'total']),
-//
-//        'initialStockEvents' => StockMovement::where('location_id', $locationId)
-//            ->latest()
-//            ->take(20)
-//            ->get(['product_id', 'quantity']),
-//    ]);
-//})->middleware(['auth', 'verified'])->name('dashboard');
-//
-//Route::middleware(['auth'])
-//    ->get('/manager/dashboard', [DashboardController::class, 'index'])
-//    ->name('manager.dashboard');
-//
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
