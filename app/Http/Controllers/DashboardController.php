@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Stock;
 use App\Models\StockMovement;
 use Carbon\Carbon;
 use Inertia\Inertia;
@@ -55,6 +56,47 @@ class DashboardController extends Controller
             });
 
 
+        $stockAlerts = Stock::query()
+            ->where('location_id', $locationId)
+            ->where(function ($q) {
+                $q->where('quantity', '<', 0)
+                    ->orWhere('quantity', '=', 0)
+                    ->orWhereColumn('quantity', '<', 'min_threshold');
+
+            })
+            ->with('product:id,name')
+            ->orderByRaw('quantity < 0 desc') // negative first
+            ->orderBy('quantity')
+            ->get()
+            ->map(function ($stock) {
+                if ($stock->quantity < 0) {
+                    return [
+                        'id' => $stock->id,
+                        'type' => 'negative',
+                        'name' => $stock->product->name,
+                        'message' => "Negative stock ({$stock->quantity})",
+                    ];
+                }
+
+                if ($stock->quantity === 0) {
+                    return [
+                        'id' => $stock->id,
+                        'type' => 'out',
+                        'name' => $stock->product->name,
+                        'message' => 'Out of stock',
+                    ];
+                }
+
+                return [
+                    'id' => $stock->id,
+                    'type' => 'low',
+                    'name' => $stock->product->name,
+                    'message' => "{$stock->quantity} left",
+                ];
+            });
+
+
+
         return Inertia::render('Dashboard', [
             'todayStats' => [
                 'salesTotal' => round($salesTotal, 2),
@@ -65,6 +107,7 @@ class DashboardController extends Controller
             'initialSales' => $initialSales,
             'initialStockEvents' => $initialStockEvents,
             'liveFeed' => $liveFeed,
+            'stockAlerts' => $stockAlerts,
         ]);
     }
 }

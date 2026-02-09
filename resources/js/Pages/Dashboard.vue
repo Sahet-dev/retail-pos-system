@@ -18,7 +18,6 @@ const tabs = [
 ]
 
 // KPIs
-
 const today = computed(() => {
     const stats = page.props.todayStats
 
@@ -40,15 +39,11 @@ const today = computed(() => {
 })
 
 
-// Live feed
 const liveSales = ref(page.props.liveFeed ?? [])
 
 
-// Stock alerts
-const stockAlerts = ref([
-    { id: 1, type: 'low', name: 'Milk 1L', message: '3 left' },
-    { id: 2, type: 'out', name: 'Eggs L', message: 'Out of stock' },
-])
+const stockAlerts = ref(page.props.stockAlerts ?? [])
+
 
 // Top products
 const topProducts = ref({
