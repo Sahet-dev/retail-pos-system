@@ -8,12 +8,9 @@ use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        Product::insert([
+        $products = [
             [
                 'barcode' => '5941234567890',
                 'name' => 'Milk 1L',
@@ -35,6 +32,14 @@ class ProductSeeder extends Seeder
                 'cost_price' => 9.10,
                 'active' => true,
             ],
-        ]);
+        ];
+
+        foreach ($products as $data) {
+            Product::updateOrCreate(
+                ['barcode' => $data['barcode']],
+                $data
+            );
+        }
     }
 }
+

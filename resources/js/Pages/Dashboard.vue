@@ -46,28 +46,31 @@ const stockAlerts = ref(page.props.stockAlerts ?? [])
 
 
 // Top products
-const topProducts = ref({
-    byQty: [
-        { id: 1, name: 'Water 1.5L', qty: 42 },
-        { id: 2, name: 'Bananas', qty: 37 },
-    ],
-    byRevenue: [
-        { id: 1, name: 'Whisky', revenue: 210 },
-        { id: 2, name: 'Coffee Beans', revenue: 180 },
-    ],
+const topProducts = ref(page.props.topProducts ?? {
+    byQty: [],
+    byRevenue: [],
 })
+
 
 // Open sales
-const openSales = ref([
-    { id: 1, terminal: 'POS 3', minutes: 12 },
-])
+const openSales = ref(page.props.openSales ?? [])
+
 
 // Cash
-const cash = ref({
-    expected: 560.0,
-    salesCount: 34,
-    avgTicket: 16.47,
+const cash = computed(() => {
+    const stats = page.props.cashStats
+
+    if (!stats) {
+        return {
+            expected: 0,
+            salesCount: 0,
+            avgTicket: 0,
+        }
+    }
+
+    return stats
 })
+
 
 const sales = ref(page.props.initialSales ?? [])
 const stockEvents = ref(page.props.initialStockEvents ?? [])
