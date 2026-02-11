@@ -38,8 +38,7 @@ class SaleController extends Controller
                 'closed_at' => now(),
             ]);
 
-
-            // 🔔 Realtime event (Reverb later)
+            // Fire real-time SaleCompleted event
             event(new SaleCompleted($sale));
 
             return response()->json([
@@ -48,7 +47,6 @@ class SaleController extends Controller
                 'cash' => $cashGiven,
                 'change_amount' => $changeAmount,
             ]);
-
         });
     }
 }

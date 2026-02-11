@@ -1,5 +1,5 @@
 <script setup>
-import {ref, onMounted, onBeforeUnmount, computed} from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
@@ -17,63 +17,29 @@ const tabs = [
     { key: 'cash', label: 'Cash 💵' },
 ]
 
-// KPIs
-const today = computed(() => {
-    const stats = page.props.todayStats
-
-    if (!stats) {
-        return {
-            salesTotal: 0,
-            transactions: 0,
-            itemsSold: 0,
-            cash: '—',
-        }
-    }
-
-    return {
-        salesTotal: stats.salesTotal,
-        transactions: stats.transactions,
-        itemsSold: stats.itemsSold,
-        cash: `${stats.cash} € cash`,
-    }
-})
-
-
+// Reactive states
 const liveSales = ref(page.props.liveFeed ?? [])
-
-
 const stockAlerts = ref(page.props.stockAlerts ?? [])
-
-
-// Top products
-const topProducts = ref(page.props.topProducts ?? {
-    byQty: [],
-    byRevenue: [],
-})
-
-
-// Open sales
+const topProducts = ref(page.props.topProducts ?? { byQty: [], byRevenue: [] })
 const openSales = ref(page.props.openSales ?? [])
-
-
-// Cash
-const cash = computed(() => {
-    const stats = page.props.cashStats
-
-    if (!stats) {
-        return {
-            expected: 0,
-            salesCount: 0,
-            avgTicket: 0,
-        }
-    }
-
-    return stats
-})
-
-
 const sales = ref(page.props.initialSales ?? [])
 const stockEvents = ref(page.props.initialStockEvents ?? [])
+
+const today = ref({
+    salesTotal: Number(page.props.todayStats?.salesTotal ?? 0),
+    transactions: Number(page.props.todayStats?.transactions ?? 0),
+    itemsSold: Number(page.props.todayStats?.itemsSold ?? 0),
+    cash: Number(page.props.todayStats?.cash ?? 0),
+})
+
+
+
+
+const cash = ref(page.props.cashStats ?? {
+    expected: 0,
+    salesCount: 0,
+    avgTicket: 0,
+})
 
 const locationId = 1
 let echo
@@ -89,33 +55,72 @@ onMounted(() => {
         withCredentials: true,
     })
 
-    echo.private(`location.${locationId}`)
-        .listen('.product.scanned', e => {
-            liveSales.value.unshift(e)
-            price: Number(e.price)
-            if (liveSales.value.length > 50) {
-                liveSales.value.pop()
-            }
+    const channel = echo.private(`location.${locationId}`)
+
+    // Product scanned -> add to live feed
+    channel.listen('.product.scanned', e => {
+        liveSales.value.unshift(e)
+        if (liveSales.value.length > 50) liveSales.value.pop()
+    })
+
+    // Sale completed -> update live feed + KPIs
+    channel.listen('.sale.completed', e => {
+
+        today.value = {
+            salesTotal: Number(e.today.salesTotal ?? 0),
+            transactions: Number(e.today.transactions ?? 0),
+            itemsSold: Number(e.today.itemsSold ?? 0),
+            cash: Number(e.today.cash ?? 0), // <-- use salesTotal if you want them equal
+        }
+
+    })
+
+
+
+
+
+    // Sale created -> add to open sales
+    channel.listen('.sale.created', e => {
+        openSales.value.unshift({
+            id: e.id,
+            terminal: e.terminal_name ?? 'POS',
+            minutes: 0,
+            started_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         })
-        .listen('.sale.completed', e => {
-            // add to live sales feed
-            sales.value.unshift({
-                id: e.sale_id,
-                total: e.total,
-                items_count: e.items_count,
-                cash: e.cash,
-            });
+        console.log(openSales)
+    })
 
-            // update Today tab KPIs in real-time
-            today.value.salesTotal += e.total;
-            today.value.transactions += 1;
-            today.value.itemsSold += e.items_count;
-            today.value.cash = `${parseFloat(today.value.cash || 0) + e.cash} € cash`;
-        });
+    // Stock movement created -> add to stock events & live feed if sale type
+    channel.listen('.stock.movement.created', e => {
+        stockEvents.value.unshift(e)
 
+        if (e.type === 'sale') {
+            liveSales.value.unshift({
+                id: e.id,
+                time: e.time,
+                product: e.product,
+                qty: e.qty,
+                price: e.price,
+                kind: 'item'
+            })
+        }
+
+        if (stockEvents.value.length > 50) stockEvents.value.pop()
+    })
+
+    // Stock updated -> update stock alerts
+    channel.listen('.stock.updated', e => {
+        const index = stockAlerts.value.findIndex(s => s.id === e.product_id)
+        const msg = e.quantity < 0 ? { type: 'negative', message: `Negative stock (${e.quantity})` } :
+            e.quantity === 0 ? { type: 'out', message: 'Out of stock' } :
+                { type: 'low', message: `${e.quantity} left` }
+
+        const stockObj = { id: e.product_id, name: e.product_name ?? 'Product', ...msg }
+
+        if (index >= 0) stockAlerts.value[index] = stockObj
+        else stockAlerts.value.unshift(stockObj)
+    })
 })
-console.log('Inertia props:', page.props)
-console.log('todayStats:', page.props.todayStats)
 
 onBeforeUnmount(() => {
     if (echo) {
@@ -167,7 +172,9 @@ onBeforeUnmount(() => {
                             <Kpi title="Today’s Sales" :value="today.salesTotal" suffix="€" />
                             <Kpi title="Transactions" :value="today.transactions" />
                             <Kpi title="Items Sold" :value="today.itemsSold" />
-                            <Kpi title="Cash " :value="today.cash" />
+                            <Kpi title="Cash" :value="Number(today.cash).toFixed(2)" suffix="€" />
+
+
                         </div>
                     </TabPanel>
 

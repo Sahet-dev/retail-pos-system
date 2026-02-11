@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProductScanned;
+use App\Events\SaleCreated;
+use App\Events\StockMovementCreated;
+use App\Events\StockUpdated;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -18,29 +22,26 @@ class ScanController extends Controller
             'location_id' => 'required|exists:locations,id',
         ]);
 
-        // Find the product
+        // Find product
         $product = Product::where('barcode', $request->barcode)
             ->where('active', true)
-            ->first();
+            ->firstOrFail();
 
-        if (! $product) {
-            return response()->json([
-                'message' => 'Product not found or inactive'
-            ], 404);
-        }
-
-
-        // Get or create an open sale for the location
-        $sale = $request->sale_id
-            ? Sale::findOrFail($request->sale_id)
-            : Sale::create([
+        // Get or create open sale
+        if ($request->sale_id) {
+            $sale = Sale::findOrFail($request->sale_id);
+        } else {
+            $sale = Sale::create([
                 'location_id' => $request->location_id,
                 'status' => 'open',
                 'total' => 0,
             ]);
 
+            // Fire SaleCreated event
+            event(new SaleCreated($sale));
+        }
 
-        // Get or create the sale item
+        // Get or create sale item
         $item = SaleItem::firstOrCreate(
             ['sale_id' => $sale->id, 'product_id' => $product->id],
             ['quantity' => 0, 'price' => $product->price]
@@ -50,7 +51,7 @@ class ScanController extends Controller
         $item->increment('quantity');
 
         // Record stock movement
-        StockMovement::create([
+        $movement = StockMovement::create([
             'product_id' => $product->id,
             'location_id' => $sale->location_id,
             'type' => 'sale',
@@ -59,22 +60,27 @@ class ScanController extends Controller
             'reference_id' => $sale->id,
         ]);
 
+        // Fire ProductScanned and StockMovementCreated events
+        event(new ProductScanned($movement));
+        event(new StockMovementCreated($movement));
+
         // Update stock
         $stock = Stock::where('product_id', $product->id)
             ->where('location_id', $sale->location_id)
-            ->lockForUpdate() // prevents race conditions
+            ->lockForUpdate()
             ->firstOrFail();
 
-// Prevent selling if stock is zero
         if ($stock->quantity <= 0) {
             abort(422, 'Out of stock');
         }
 
-// Decrement stock
         $stock->decrement('quantity');
+        $stock->refresh();
 
+        // Fire StockUpdated event
+        event(new StockUpdated($stock));
 
-        // Correct: sum on collection, not query
+        // Update sale total
         $sale->total = $sale->items->sum(fn($i) => $i->quantity * $i->price);
         $sale->save();
 

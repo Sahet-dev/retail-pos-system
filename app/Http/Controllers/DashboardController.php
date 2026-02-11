@@ -8,9 +8,16 @@ use App\Models\Stock;
 use App\Models\StockMovement;
 use Carbon\Carbon;
 use Inertia\Inertia;
-
+use App\Http\Services\DashboardService;
 class DashboardController extends Controller
 {
+
+    protected $dashboardService;
+
+    public function __construct(DashboardService $dashboardService)
+    {
+        $this->dashboardService = $dashboardService;
+    }
     public function index()
     {
         $locationId = 1;
@@ -18,13 +25,7 @@ class DashboardController extends Controller
         $today = Carbon::today();
         $date = request('date', $today->toDateString());
 
-        $completedSales = Sale::where('status', 'closed')
-            ->whereDate('closed_at', $date);
-
-        $salesTotal = (clone $completedSales)->sum('total');
-        $transactions = (clone $completedSales)->count();
-        $itemsSold = SaleItem::whereIn('sale_id', $completedSales->pluck('id'))->sum('quantity');
-        $cashTotal = (clone $completedSales)->whereNotNull('cash_given')->sum('total');
+        $todayStats = $this->dashboardService->getTodayStats($locationId, $date);
 
         $initialSales = Sale::where('location_id', $locationId)
             ->latest()
@@ -156,12 +157,7 @@ class DashboardController extends Controller
 
 
         return Inertia::render('Dashboard', [
-            'todayStats' => [
-                'salesTotal' => round($salesTotal, 2),
-                'transactions' => $transactions,
-                'itemsSold' => $itemsSold,
-                'cash' => round($cashTotal, 2),
-            ],
+            'todayStats' => $todayStats,
             'initialSales' => $initialSales,
             'initialStockEvents' => $initialStockEvents,
             'liveFeed' => $liveFeed,
