@@ -16,7 +16,7 @@ class StockUpdated implements ShouldBroadcast
     public function __construct(
         public Stock $stock
     ) {}
-
+    public bool $afterCommit = true;
     public function broadcastOn(): Channel
     {
         return new Channel(

@@ -4,16 +4,17 @@ namespace App\Events;
 use App\Models\Sale;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class SaleCreated implements ShouldBroadcastNow
+class SaleCreated implements ShouldBroadcast
 {
     use Dispatchable, SerializesModels;
 
     public function __construct(public Sale $sale) {}
-
+    public bool $afterCommit = true;
     public function broadcastOn(): PrivateChannel
     {
         return new PrivateChannel('location.' . $this->sale->location_id);
