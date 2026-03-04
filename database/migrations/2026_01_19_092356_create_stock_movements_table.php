@@ -28,6 +28,11 @@ return new class extends Migration
             $table->nullableMorphs('reference');
 
             $table->timestamps();
+            $table->index(['product_id', 'location_id']);
+            $table->index(['location_id', 'created_at']);
+            $table->index(['product_id', 'created_at']);
+            $table->index('type');
+
         });
 
 

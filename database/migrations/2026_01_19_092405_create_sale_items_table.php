@@ -22,6 +22,9 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['sale_id', 'product_id']);
+            $table->index('product_id');
+            $table->index(['product_id', 'created_at']);
+
         });
     }
 

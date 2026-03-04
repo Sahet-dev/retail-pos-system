@@ -7,6 +7,7 @@ const items = ref([])
 const total = ref(0)
 const cashGiven = ref('')
 const locationId = 1
+const errorMessage = ref('')
 
 const lastSaleId = ref(null)
 
@@ -33,20 +34,30 @@ const scan = async () => {
         total.value = sale_total
         barcode.value = ''
     } catch (e) {
-        alert(e.response?.data?.message || 'Scan failed')
+        showError(e.response?.data?.message || 'Scan failed')
+
     }
 }
 
+const showError = (message) => {
+    errorMessage.value = message
+
+    // auto hide after 3 seconds (optional)
+    setTimeout(() => {
+        errorMessage.value = ''
+    }, 2300)
+}
 
 const cash = async () => {
     const amount = Number(cashGiven.value);
     if (!amount || amount < total.value) {
-        alert('Insufficient cash');
+        showError('Insufficient cash')
+;
         return;
     }
 
     if (!lastSaleId.value) {
-        alert('No sale found to complete');
+        showError('No sale found to complete');
         return;
     }
 
@@ -64,7 +75,7 @@ const cash = async () => {
         lastSaleId.value = null;
     } catch (e) {
         console.error(e);
-        alert(e.response?.data?.message || 'Payment failed');
+        showError(e.response?.data?.message || 'Payment failed');
     }
 };
 
@@ -85,6 +96,9 @@ onMounted(() => {
 <template>
     <div class="pos">
         <h1 class="title">Point of Sale</h1>
+        <div v-if="errorMessage" class="error-box">
+            {{ errorMessage }}
+        </div>
 
         <input
             id="barcode"
@@ -213,4 +227,15 @@ onMounted(() => {
 .cash-btn:hover {
     background: #222;
 }
+
+.error-box {
+    background: #ffe5e5;
+    color: #c62828;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    border-radius: 10px;
+    font-weight: 500;
+    border: 1px solid #f5c2c2;
+}
+
 </style>
